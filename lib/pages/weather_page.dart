@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:geolocator/geolocator.dart';
+import 'package:lottie/lottie.dart';
+import 'package:intl/intl.dart';
 import 'package:weather_app/services/weather_service.dart';
 import 'package:weather_app/models/weather_model.dart';
-import 'package:weather_app/models/forecast_model.dart';
 import 'package:weather_app/theme/app_colors.dart';
-import 'package:intl/intl.dart';
 
-/// Main weather screen with minimalist UI
 class WeatherPage extends StatefulWidget {
   const WeatherPage({super.key});
 
@@ -15,18 +15,32 @@ class WeatherPage extends StatefulWidget {
       _WeatherPageState();
 }
 
-class _WeatherPageState
-    extends State<WeatherPage> {
+class _WeatherPageState extends State<WeatherPage>
+    with SingleTickerProviderStateMixin {
   final _weatherService = WeatherService(
     '291cef864197d525c10a970bd57d4006',
   );
+
   Weather? _weather;
-  List<DailyForecast> _forecast = [];
   bool _isLoading = true;
+
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
+
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+
+    _fadeAnim = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOut,
+    );
+
     _fetchWeatherData();
   }
 
@@ -53,9 +67,10 @@ class _WeatherPageState
 
       Position position =
           await Geolocator.getCurrentPosition(
-            locationSettings: LocationSettings(
-              accuracy: LocationAccuracy.high,
-            ),
+            locationSettings:
+                const LocationSettings(
+                  accuracy: LocationAccuracy.high,
+                ),
           );
 
       final weather = await _weatherService
@@ -64,21 +79,21 @@ class _WeatherPageState
             position.longitude,
           );
 
-      final forecast = await _weatherService
-          .getForecastByCoords(
-            position.latitude,
-            position.longitude,
-          );
-
       setState(() {
         _weather = weather;
-        _forecast = forecast.take(5).toList();
         _isLoading = false;
       });
+
+      _animController.forward();
     } catch (e) {
-      print("ERROR: $e");
       setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   @override
@@ -88,6 +103,7 @@ class _WeatherPageState
           _weather?.mainCondition,
           DateTime.now(),
         );
+
     final textColor = AppColors.getTextColor(
       gradientColors,
     );
@@ -110,306 +126,213 @@ class _WeatherPageState
                             .primaryWhite,
                       ),
                 )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: Column(
+              : Center(
+                  child: Column(
+                    mainAxisAlignment:
+                        MainAxisAlignment.center,
+                    children: [
+                      /// CITY + ICON
+                      Row(
                         mainAxisAlignment:
                             MainAxisAlignment
                                 .center,
                         children: [
-                          // Weather condition
-                          Text(
-                            _weather?.mainCondition ??
-                                "Clear",
-                            style: TextStyle(
-                              fontSize: 20,
-                              color: textColor
-                                  .withOpacity(
-                                    0.9,
-                                  ),
-                              fontWeight:
-                                  FontWeight.w300,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 8,
-                          ),
-
-                          // Large temperature
-                          Text(
-                            '${_weather?.temperature.round() ?? 0}°',
-                            style: TextStyle(
-                              fontSize: 96,
-                              color: textColor,
-                              fontWeight:
-                                  FontWeight.w200,
-                              height: 1,
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 40,
-                          ),
-
-                          // City name
                           Text(
                             _weather?.cityName
                                     .toUpperCase() ??
-                                "LOADING",
+                                '',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 18,
                               color: textColor
                                   .withOpacity(
-                                    0.6,
+                                    0.7,
                                   ),
-                              fontWeight:
-                                  FontWeight.w500,
-                              letterSpacing: 2.5,
+                              letterSpacing: 2,
                             ),
+                          ),
+                          const SizedBox(
+                            width: 12,
+                          ),
+                          Lottie.asset(
+                            _getWeatherAnimation(
+                              _weather
+                                  ?.mainCondition,
+                            ),
+                            width: 100,
+                            height: 100,
                           ),
                         ],
                       ),
-                    ),
 
-                    // 5-day forecast
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(
-                            vertical: 20,
-                          ),
-                      child: Column(
-                        children: [
-                          // Hourly forecast icons
-                          _buildHourlyForecast(
-                            textColor,
-                          ),
-                          const SizedBox(
-                            height: 24,
-                          ),
+                      const SizedBox(height: 10),
 
-                          // Day tabs
-                          _buildDayTabs(
-                            textColor,
-                          ),
-                          const SizedBox(
-                            height: 24,
-                          ),
-
-                          // Daily forecast list
-                          if (_forecast
-                              .isNotEmpty)
-                            _buildDailyForecast(
-                              textColor,
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _fetchWeatherData,
-        backgroundColor: AppColors.primaryWhite
-            .withOpacity(0.9),
-        child: const Icon(
-          Icons.add,
-          color: AppColors.textPrimary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHourlyForecast(Color textColor) {
-    return Container(
-      height: 80,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 20,
-      ),
-      child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceEvenly,
-        children: List.generate(5, (index) {
-          final hour = DateTime.now().add(
-            Duration(hours: index * 3),
-          );
-          return Column(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
-            children: [
-              Text(
-                hour.hour == DateTime.now().hour
-                    ? 'Now'
-                    : '${hour.hour}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: textColor.withOpacity(
-                    0.7,
-                  ),
-                  fontWeight: FontWeight.w400,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Icon(
-                _getWeatherIcon(
-                  _weather?.mainCondition,
-                ),
-                color: textColor.withOpacity(0.8),
-                size: 24,
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildDayTabs(Color textColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 40,
-      ),
-      child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildDayTab('Today', true, textColor),
-          _buildDayTab(
-            'Tomorrow',
-            false,
-            textColor,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDayTab(
-    String label,
-    bool isActive,
-    Color textColor,
-  ) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: textColor.withOpacity(
-              isActive ? 1.0 : 0.5,
-            ),
-            fontWeight: isActive
-                ? FontWeight.w600
-                : FontWeight.w400,
-          ),
-        ),
-        const SizedBox(height: 4),
-        if (isActive)
-          Container(
-            width: 40,
-            height: 2,
-            decoration: BoxDecoration(
-              color: textColor,
-              borderRadius: BorderRadius.circular(
-                1,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildDailyForecast(Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 32,
-      ),
-      child: Column(
-        children: _forecast.map((day) {
-          final dayName = DateFormat(
-            'EEEE',
-          ).format(day.date);
-          return Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 8,
-            ),
-            child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(
-                  width: 80,
-                  child: Text(
-                    dayName,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: textColor
-                          .withOpacity(0.7),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ),
-                Icon(
-                  _getWeatherIcon(
-                    day.mainCondition,
-                  ),
-                  color: textColor.withOpacity(
-                    0.8,
-                  ),
-                  size: 20,
-                ),
-                SizedBox(
-                  width: 60,
-                  child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.end,
-                    children: [
+                      /// TEMP
                       Text(
-                        '${day.tempMax.round()}°',
+                        '${_weather?.temperature.round() ?? 0}°',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 42,
                           color: textColor,
-                          fontWeight:
-                              FontWeight.w500,
                         ),
                       ),
+
+                      const SizedBox(height: 6),
+
+                      /// CONDITION
                       Text(
-                        ' -${day.tempMin.round()}°',
+                        _weather?.mainCondition ??
+                            '',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 16,
                           color: textColor
-                              .withOpacity(0.5),
-                          fontWeight:
-                              FontWeight.w400,
+                              .withOpacity(0.7),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+                      FadeTransition(
+                        opacity: _fadeAnim,
+                        child: Center(
+                          // important: centers the smaller card
+                          child: ClipRRect(
+                            borderRadius:
+                                BorderRadius.circular(
+                                  16,
+                                ),
+                            child: BackdropFilter(
+                              filter:
+                                  ImageFilter.blur(
+                                    sigmaX: 8,
+                                    sigmaY: 8,
+                                  ),
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.symmetric(
+                                      vertical: 6,
+                                      horizontal:
+                                          8, // small side padding
+                                    ),
+                                decoration: BoxDecoration(
+                                  color: Colors
+                                      .white
+                                      .withOpacity(
+                                        0.07,
+                                      ),
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                        16,
+                                      ),
+                                  border: Border.all(
+                                    color: Colors
+                                        .white
+                                        .withOpacity(
+                                          0.12,
+                                        ),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize:
+                                      MainAxisSize
+                                          .min, // 🔥 KEY: shrink to content
+                                  children: List.generate(5, (
+                                    index,
+                                  ) {
+                                    final date =
+                                        DateTime.now().add(
+                                          Duration(
+                                            days:
+                                                index,
+                                          ),
+                                        );
+                                    final day =
+                                        DateFormat(
+                                          'E',
+                                        ).format(
+                                          date,
+                                        );
+
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal:
+                                            6,
+                                      ), // tight spacing
+                                      child: Column(
+                                        mainAxisSize:
+                                            MainAxisSize
+                                                .min,
+                                        children: [
+                                          Text(
+                                            day,
+                                            style: TextStyle(
+                                              color: textColor.withOpacity(
+                                                0.7,
+                                              ),
+                                              fontSize:
+                                                  11,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            height:
+                                                2,
+                                          ),
+                                          Lottie.asset(
+                                            'lib/assets/sunny.json',
+                                            width:
+                                                34,
+                                            height:
+                                                34,
+                                          ),
+                                          const SizedBox(
+                                            height:
+                                                2,
+                                          ),
+                                          Text(
+                                            '${30 + index}°',
+                                            style: TextStyle(
+                                              color:
+                                                  textColor,
+                                              fontSize:
+                                                  11,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          );
-        }).toList(),
+        ),
       ),
     );
   }
 
-  IconData _getWeatherIcon(String? condition) {
-    switch (condition?.toLowerCase()) {
-      case 'clear':
-        return Icons.wb_sunny_outlined;
+  String _getWeatherAnimation(
+    String? mainCondition,
+  ) {
+    switch (mainCondition?.toLowerCase()) {
       case 'clouds':
-        return Icons.cloud_outlined;
+      case 'mist':
+      case 'smoke':
+      case 'haze':
+      case 'dust':
+      case 'fog':
+        return 'lib/assets/cloudy.json';
       case 'rain':
       case 'drizzle':
-        return Icons.water_drop_outlined;
+      case 'shower rain':
+        return 'lib/assets/rain.json';
       case 'thunderstorm':
-        return Icons.flash_on_outlined;
-      case 'snow':
-        return Icons.ac_unit;
+        return 'lib/assets/storm.json';
+      case 'clear':
+        return 'lib/assets/sunny.json';
       default:
-        return Icons.wb_sunny_outlined;
+        return 'lib/assets/sunny.json';
     }
   }
 }
