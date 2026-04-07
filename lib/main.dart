@@ -1,5 +1,4 @@
 //WEATHER APP MADE BY FLUTTER
-//Sample
 import 'package:flutter/material.dart';
 import 'package:weather_app/pages/weather_page.dart';
 
