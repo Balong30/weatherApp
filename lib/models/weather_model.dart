@@ -3,7 +3,7 @@ class Weather {
   final double temperature;
   final String mainCondition;
 
-  Weather({
+  const Weather({
     required this.cityName,
     required this.temperature,
     required this.mainCondition,

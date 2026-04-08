@@ -7,7 +7,7 @@ class ForecastEntry {
   final String mainCondition;
   final String description;
 
-  ForecastEntry({
+  const ForecastEntry({
     required this.dateTime,
     required this.temperature,
     required this.tempMin,
@@ -45,7 +45,7 @@ class DailyForecast {
   final String mainCondition;
   final String description;
 
-  DailyForecast({
+  const DailyForecast({
     required this.date,
     required this.tempMin,
     required this.tempMax,
@@ -57,8 +57,8 @@ class DailyForecast {
   static List<DailyForecast> fromForecastList(
     List<ForecastEntry> entries,
   ) {
-    Map<String, List<ForecastEntry>> dailyMap =
-        {};
+    final dailyMap =
+        <String, List<ForecastEntry>>{};
 
     // Group entries by day
     for (var entry in entries) {
@@ -70,7 +70,7 @@ class DailyForecast {
     }
 
     // Create daily forecasts from grouped entries
-    List<DailyForecast> dailyForecasts = [];
+    final dailyForecasts = <DailyForecast>[];
     dailyMap.forEach((dateKey, dayEntries) {
       if (dayEntries.isEmpty) return;
 
@@ -111,7 +111,7 @@ class DailyForecast {
   ) {
     if (items.isEmpty) return '';
 
-    Map<String, int> frequency = {};
+    final frequency = <String, int>{};
     for (var item in items) {
       frequency[item] =
           (frequency[item] ?? 0) + 1;

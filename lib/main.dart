@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:weather_app/pages/weather_page.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: WeatherPage(),
+      home: const WeatherPage(),
     );
   }
 }
