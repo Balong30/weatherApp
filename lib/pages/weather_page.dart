@@ -33,6 +33,7 @@ class _WeatherPageState extends State<WeatherPage>
   Weather? _weather;
   List<DailyForecast> _forecast = [];
   bool _isLoading = true;
+  int _selectedIndex = 0;
 
   // --- Animations ---
   late AnimationController _animController;
@@ -172,6 +173,10 @@ class _WeatherPageState extends State<WeatherPage>
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: _buildAppBar(textColor),
+        bottomNavigationBar: _buildNavigationBar(
+          textColor,
+          gradientColors,
+        ),
         body: SafeArea(
           child: _isLoading
               ? _buildLoadingState()
@@ -367,6 +372,147 @@ class _WeatherPageState extends State<WeatherPage>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNavigationBar(
+    Color textColor,
+    List<Color> gradientColors,
+  ) {
+    // Get a vibrant accent color from the gradient
+    final accentColor = gradientColors.first;
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(20),
+        topRight: Radius.circular(20),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: 10,
+          sigmaY: 10,
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            border: Border(
+              top: BorderSide(
+                color: Colors.white.withOpacity(
+                  0.1,
+                ),
+                width: 1,
+              ),
+            ),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: 8,
+              ),
+              child: Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    icon: Icons.home_outlined,
+                    activeIcon: Icons.home,
+                    label: 'Home',
+                    index: 0,
+                    textColor: textColor,
+                    accentColor: accentColor,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.search_outlined,
+                    activeIcon: Icons.search,
+                    label: 'Search',
+                    index: 1,
+                    textColor: textColor,
+                    accentColor: accentColor,
+                  ),
+                  _buildNavItem(
+                    icon: Icons
+                        .location_on_outlined,
+                    activeIcon: Icons.location_on,
+                    label: 'Locations',
+                    index: 2,
+                    textColor: textColor,
+                    accentColor: accentColor,
+                  ),
+                  _buildNavItem(
+                    icon: Icons.settings_outlined,
+                    activeIcon: Icons.settings,
+                    label: 'Settings',
+                    index: 3,
+                    textColor: textColor,
+                    accentColor: accentColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem({
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+    required int index,
+    required Color textColor,
+    required Color accentColor,
+  }) {
+    final isSelected = _selectedIndex == index;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 8,
+        ),
+        decoration: isSelected
+            ? BoxDecoration(
+                borderRadius:
+                    BorderRadius.circular(12),
+                color: accentColor.withOpacity(
+                  0.15,
+                ),
+              )
+            : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected
+                  ? accentColor
+                  : textColor.withOpacity(0.4),
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? accentColor
+                    : textColor.withOpacity(0.4),
+                fontSize: isSelected ? 12 : 11,
+                fontWeight: isSelected
+                    ? FontWeight.w600
+                    : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
