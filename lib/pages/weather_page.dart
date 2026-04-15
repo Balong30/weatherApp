@@ -16,15 +16,20 @@ class WeatherPage extends StatefulWidget {
   const WeatherPage({super.key});
 
   @override
-  State<WeatherPage> createState() => _WeatherPageState();
+  State<WeatherPage> createState() =>
+      _WeatherPageState();
 }
 
 class _WeatherPageState extends State<WeatherPage>
     with SingleTickerProviderStateMixin {
   // --- Constants ---
-  static const String _apiKey = '291cef864197d525c10a970bd57d4006';
+  static const String _apiKey =
+      '291cef864197d525c10a970bd57d4006';
   static const int _forecastDays = 5;
   static const int _animDurationMs = 800;
+
+  // 🔥 SWITCH: true = static data, false = API
+  static const bool useMockData = true;
 
   // --- Services & State ---
   final _weatherService = WeatherService(_apiKey);
@@ -41,7 +46,12 @@ class _WeatherPageState extends State<WeatherPage>
   void initState() {
     super.initState();
     _setupAnimation();
-    _fetchWeatherData();
+
+    if (useMockData) {
+      _loadMockData(); // ✅ STATIC DATA HERE
+    } else {
+      _fetchWeatherData();
+    }
   }
 
   @override
@@ -50,12 +60,13 @@ class _WeatherPageState extends State<WeatherPage>
     super.dispose();
   }
 
-  // --- Initialization & Logic ---
-
+  // --- Animation Setup ---
   void _setupAnimation() {
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: _animDurationMs),
+      duration: const Duration(
+        milliseconds: _animDurationMs,
+      ),
     );
 
     _fadeAnim = CurvedAnimation(
@@ -64,18 +75,42 @@ class _WeatherPageState extends State<WeatherPage>
     );
   }
 
+  // ================================
+  // ✅ MOCK DATA (EDIT HERE FOR TESTING)
+  // ================================
+  void _loadMockData() {
+    setState(() {
+      _weather = Weather(
+        cityName: "Manila",
+        temperature: 30,
+
+        // 🔥🔥 CHANGE THIS VALUE TO TEST ICONS 🔥🔥
+        // Examples:
+        // "Clear", "Clouds", "Rain", "Thunderstorm", "Snow", "Drizzle", "Mist"
+        mainCondition: "Storm",
+      );
+
+      _isLoading = false;
+    });
+
+    _animController.forward();
+  }
+
+  // --- API Fetch (unchanged) ---
   Future<void> _fetchWeatherData() async {
     try {
       setState(() => _isLoading = true);
       await _checkLocationPermission();
 
-      final position = await _getCurrentPosition();
+      final position =
+          await _getCurrentPosition();
       final lat = position.latitude;
       final lon = position.longitude;
 
-      // Fetch weather and forecast in parallel
-      final weather = await _weatherService.getWeatherByCoords(lat, lon);
-      final forecast = await _weatherService.getForecastByCoords(lat, lon);
+      final weather = await _weatherService
+          .getWeatherByCoords(lat, lon);
+      final forecast = await _weatherService
+          .getForecastByCoords(lat, lon);
 
       if (!mounted) return;
 
@@ -87,20 +122,26 @@ class _WeatherPageState extends State<WeatherPage>
 
       _animController.forward();
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted)
+        setState(() => _isLoading = false);
     }
   }
 
   Future<void> _checkLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
+    LocationPermission permission =
+        await Geolocator.checkPermission();
 
     if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+      permission =
+          await Geolocator.requestPermission();
     }
 
     if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      throw Exception('Location permission denied');
+        permission ==
+            LocationPermission.deniedForever) {
+      throw Exception(
+        'Location permission denied',
+      );
     }
   }
 
@@ -112,9 +153,15 @@ class _WeatherPageState extends State<WeatherPage>
     );
   }
 
-  List<DailyForecast> _filterForecast(List<DailyForecast> forecast) {
+  List<DailyForecast> _filterForecast(
+    List<DailyForecast> forecast,
+  ) {
     final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
+    final todayDate = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    );
 
     return forecast
         .where((daily) {
@@ -133,24 +180,20 @@ class _WeatherPageState extends State<WeatherPage>
     setState(() {
       _currentNavIndex = index;
     });
-    
-    // TODO: Handle navigation based on index
-    // 0: Home (current weather)
-    // 1: Search cities
-    // 2: Saved locations
-    // 3: Settings
   }
 
-  // --- UI Components ---
-
+  // --- UI ---
   @override
   Widget build(BuildContext context) {
-    final gradientColors = AppColors.getBackgroundGradient(
-      _weather?.mainCondition,
-      DateTime.now(),
-    );
+    final gradientColors =
+        AppColors.getBackgroundGradient(
+          _weather?.mainCondition,
+          DateTime.now(),
+        );
 
-    final textColor = AppColors.getTextColor(gradientColors);
+    final textColor = AppColors.getTextColor(
+      gradientColors,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -162,7 +205,9 @@ class _WeatherPageState extends State<WeatherPage>
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: WeatherAppBar(textColor: textColor),
+        appBar: WeatherAppBar(
+          textColor: textColor,
+        ),
         body: SafeArea(
           child: _isLoading
               ? const LoadingIndicator()
@@ -181,21 +226,25 @@ class _WeatherPageState extends State<WeatherPage>
   Widget _buildWeatherContent(Color textColor) {
     return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment:
+            MainAxisAlignment.center,
         children: [
           CityWeatherHeader(
             cityName: _weather?.cityName ?? '',
-            mainCondition: _weather?.mainCondition,
+            mainCondition:
+                _weather?.mainCondition,
             textColor: textColor,
           ),
           const SizedBox(height: 10),
           TemperatureDisplay(
-            temperature: _weather?.temperature ?? 0,
+            temperature:
+                _weather?.temperature ?? 0,
             textColor: textColor,
           ),
           const SizedBox(height: 6),
           WeatherConditionText(
-            condition: _weather?.mainCondition ?? '',
+            condition:
+                _weather?.mainCondition ?? '',
             textColor: textColor,
           ),
           const SizedBox(height: 20),
